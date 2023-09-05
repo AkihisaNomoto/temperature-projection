@@ -517,7 +517,7 @@ def main():
                 frame_name=timestamp,
                 scene_index=all_statistics[timestamp]["scene_index"],
                 elapsed_time_in_min=all_statistics[timestamp]["elapsed_time_in_min"],
-                show_temp_point=True # Set True if you want to see
+                show_temp_point=False # Set True if you want to see
             )
         else:
             print(f"Warning: {timestamp} not found in all_statistics.")
