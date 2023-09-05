@@ -9,9 +9,7 @@ PROJECT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 # Define the directories to be created
 directories = {
-    "data": {"main": "data", "sub": ["copied_original", "processed", "summary"]},
-    "figures": {},
-    "reports": {},
+    "data": {"main": "data"},
 }
 
 def create_directory(path):
@@ -26,17 +24,14 @@ def create_directory(path):
 for main_dir, sub_dirs in directories.items():
     main_path = os.path.join(PROJECT_DIRECTORY, main_dir)
     create_directory(main_path)
-    if sub_dirs:
-        for sub_dir in sub_dirs["sub"]:
-            sub_path = os.path.join(main_path, sub_dir)
-            create_directory(sub_path)
+    # if sub_dirs:
+    #     for sub_dir in sub_dirs["sub"]:
+    #         sub_path = os.path.join(main_path, sub_dir)
+    #         create_directory(sub_path)
 
 # Define the paths for later use in the code.
 DATA_DIRECTORY = os.path.join(PROJECT_DIRECTORY, "data")
 MRT_SENSOR_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "princeton mrt sensor")
 
 
-SUMMARY_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "summary")
-FIGURE_PATH = os.path.join(PROJECT_DIRECTORY, "figures")
-MODEL_PATH = os.path.join(PROJECT_DIRECTORY, "models")
-REPORT_PATH = os.path.join(PROJECT_DIRECTORY, "reports")
+EXP_RECORD_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "experimental record")

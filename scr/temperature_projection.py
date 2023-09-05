@@ -17,17 +17,20 @@ from congigration import *
 # Directory where your PLY files are stored
 directory_path = os.path.join(MRT_SENSOR_DATA_DIRECTORY, "sample ply data")
 start_time_str = "08-28-2023 09:00:00"
-end_time_str = "09-01-2023 17:00:00"
+end_time_str = "09-05-2023 17:00:00"
+
+# Directory where output files are saved
+save_directory_path = EXP_RECORD_DATA_DIRECTORY
 
 # Define panel coordinates
 panel_zone_coordinates = {
-    "Zone1": {
+    "Zone4": {
         "Top Left": (1835, 0),
         "Top Right": (3665, 0),
         "Bottom Left": (1835, 1220),
         "Bottom Right": (3665, 1220),
     },
-    "Zone2": {
+    "Zone1": {
         "Top Left": (610, 1220),
         "Top Right": (2445, 1220),
         "Bottom Left": (615, 3660),
@@ -39,7 +42,7 @@ panel_zone_coordinates = {
         "Bottom Left": (1835, 4880),
         "Bottom Right": (3665, 4880),
     },
-    "Zone4": {
+    "Zone2": {
         "Top Left": (3055, 1220),
         "Top Right": (4885, 1220),
         "Bottom Left": (3055, 3660),
@@ -266,17 +269,20 @@ def gather_intersection_and_panel_data(
     # Sort the dictionary by zone names
     sorted_statistics = OrderedDict(sorted(all_statistics.items(), key=lambda x: x[0]))
 
-    return sorted_statistics
+    return sorted_statistics, intersection_data
 
 
 def adapted_plot_with_same_color_scale(
     ax,
+    intersection_data,
     all_statistics,
     chamber_dimensions,
     frame_name,
+    scene_index,
+    elapsed_time_in_min,
     min_temp=15,
     max_temp=30,
-    show_temp_point=False,
+    show_temp_point=True,
 ):
     """
     Create a plot with the same color scale.
@@ -302,6 +308,13 @@ def adapted_plot_with_same_color_scale(
             )
         )
 
+    def plot_intersection_points(ax, intersection_data, cmap, min_temp, max_temp):
+        for face_name, data in intersection_data.items():
+            points, temps = zip(*data)
+            points = np.array(points)
+            ax.scatter(points[:, 0], points[:, 1], points[:, 2], c=temps, cmap=cmap, vmin=min_temp, vmax=max_temp,
+                       marker='o', s=5, alpha=0.3)
+
     def add_colorbar(ax, cmap, min_temp, max_temp):
         sc = ax.scatter([], [], [], c=[], cmap=cmap, vmin=min_temp, vmax=max_temp)
         cbar = plt.colorbar(sc, label="Temperature (°C)")
@@ -310,12 +323,14 @@ def adapted_plot_with_same_color_scale(
     def add_median_temps(ax, all_statistics):
         text_position = [-0.4, 0.5]
         legend_text = "Median Temperatures (°C)\n\n"
+
         for name, stats in all_statistics.items():
-            temp = round(stats.get("median", 0), 2)
-            temp_str = "{:.2f}".format(
-                temp
-            )  # Explicitly control the number of decimal places
-            legend_text += f"{name}: {temp_str}\n"
+            if isinstance(stats, dict): # Check if stats is dict data
+                temp = round(stats.get("median", 0), 2)
+                temp_str = "{:.2f}".format(
+                    temp
+                )  # Explicitly control the number of decimal places
+                legend_text += f"{name}: {temp_str}\n"
         ax.text2D(
             text_position[0],
             text_position[1],
@@ -324,12 +339,17 @@ def adapted_plot_with_same_color_scale(
             fontsize=10,
         )
 
-    def add_frame_info(ax, frame_name):
+    def add_frame_info(ax, frame_name, scene_index, elapsed_time_in_min):
         text_position = [-0.4, 1]
+        frame_info_text = (
+            f"Time: {frame_name}\n"
+            f"Scene Index: {scene_index}\n"
+            f"Elapsed Time: {elapsed_time_in_min:.2f} min"
+        )
         ax.text2D(
             text_position[0],
             text_position[1],
-            f'Time: {frame_name}',
+            frame_info_text,
             transform=ax.transAxes,
             fontsize=10,
         )
@@ -345,9 +365,6 @@ def adapted_plot_with_same_color_scale(
     # Clear the previous plot elements from the ax
     ax.clear()
 
-    # fig = plt.figure(figsize=(12, 8))
-    # ax = fig.add_subplot(111, projection='3d')
-
     walls, panel_zones = define_walls_and_panels(chamber_dimensions)
 
     cmap = cm.seismic
@@ -357,11 +374,12 @@ def adapted_plot_with_same_color_scale(
         for name, corners in entities.items():
             temp = all_statistics.get(name, {}).get("median", 0)
             color = cmap(norm(temp))
-            plot_face(ax, corners, color, alpha=0.7 if name_type == "Panel" else 0.5)
+            plot_face(ax, corners, color, alpha=0.5 if name_type == "Panel" else 0.5)
 
     if show_temp_point:
         # If you still want to show intersection points, you may need to pass them separately or get them from all_statistics
-        pass
+        plot_intersection_points(ax, intersection_data, cmap, min_temp, max_temp)
+
 
     # Only add the colorbar if it hasn't been added yet
     if not colorbar_added:
@@ -369,45 +387,11 @@ def adapted_plot_with_same_color_scale(
         colorbar_added = True  # Set the flag to True after adding the colorbar
 
     add_median_temps(ax, all_statistics)
-    add_frame_info(ax, frame_name)
+    add_frame_info(ax, frame_name, scene_index, elapsed_time_in_min)
     set_plot_labels_and_limits(ax, chamber_dimensions)
 
     # No need for animation
     # plt.show()
-
-
-# def save_statistics_to_csv(all_statistics, csv_file_path):
-#     """
-#     Save the collected statistics to a CSV file, with each row containing all statistics for a single timestamp.
-#
-#     Parameters:
-#     - all_statistics (dict): A dictionary containing the statistics (average and median temperature) for each zone at different timestamps.
-#     - csv_file_path (str): The path where the CSV file will be saved.
-#     """
-#     # Open the CSV file for writing
-#     with open(csv_file_path, "w", newline="") as csvfile:
-#         # Identify the unique zones involved
-#         example_timestamp = next(iter(all_statistics.keys()))
-#         unique_zones = [zone for zone in all_statistics[example_timestamp].keys() if zone not in ['scene_index', 'elapsed_time']]
-#
-#         # Initialize the CSV writer
-#         csvwriter = csv.writer(csvfile)
-#
-#         # Write the header row
-#         header = ["Timestamp", "Scene Index", "Elapsed Time (min)"]
-#         for zone in unique_zones:
-#             header.extend([f"{zone}_mean_C", f"{zone}_median_C"])
-#         csvwriter.writerow(header)
-#
-#         # Write the statistics data
-#         for timestamp, stats in all_statistics.items():
-#             row = [timestamp, stats.get('scene_index', None), stats.get('elapsed_time', None)]
-#             for zone in unique_zones:
-#                 if zone in stats:
-#                     row.extend([stats[zone].get("average", None), stats[zone].get("median", None)])
-#                 else:
-#                     row.extend([None, None])
-#             csvwriter.writerow(row)
 
 
 def save_statistics_to_csv(all_statistics, csv_file_path):
@@ -418,23 +402,30 @@ def save_statistics_to_csv(all_statistics, csv_file_path):
 
         csvwriter = csv.writer(csvfile)
 
+        # Write header
         header = ["Timestamp", "Scene Index", "Elapsed Time (min)"]
         for zone in unique_zones:
             header.extend([f"{zone}_mean_C", f"{zone}_median_C"])
         csvwriter.writerow(header)
 
-    for timestamp, stats in all_statistics.items():
-        row = [timestamp, stats.get('scene_index', None), stats.get('elapsed_time_in_min', None)]
-        for zone in unique_zones:
-            if zone in stats:
-                # Check if stats[zone] is a dictionary before calling .get()
-                if isinstance(stats[zone], dict):
-                    row.extend([stats[zone].get("average", None), stats[zone].get("median", None)])
-                else:
-                    row.extend([None, None])  # if it's not a dictionary, extend the row with None
-            else:
-                row.extend([None, None])
+        # Write rows
+        for timestamp, stats in all_statistics.items():
+            row = [timestamp]
 
+            # Check if 'scene_index' and 'elapsed_time_in_min' keys exist and are not dictionaries
+            for key in ['scene_index', 'elapsed_time_in_min']:
+                row.append(stats.get(key, None) if key in stats and not isinstance(stats[key], dict) else None)
+
+            for zone in unique_zones:
+                if zone in stats:
+                    # Check if stats[zone] is a dictionary before calling .get()
+                    if isinstance(stats[zone], dict):
+                        row.extend([stats[zone].get("average", None), stats[zone].get("median", None)])
+                    else:
+                        row.extend([None, None])  # if it's not a dictionary, extend the row with None
+                else:
+                    row.extend([None, None])  # if zone is not in stats, extend the row with None
+            csvwriter.writerow(row)
 
 def main():
     # Initialize an empty dictionary to hold all temperature statistics
@@ -468,7 +459,7 @@ def main():
         adjusted_vertices = vertex_data + chamber_center
 
         # Gather all statistics for the current timestamp
-        current_statistics = gather_intersection_and_panel_data(
+        current_statistics, intersection_data = gather_intersection_and_panel_data(
             adjusted_vertices=adjusted_vertices,
             temperatures=temperatures,
             faces=faces,
@@ -497,14 +488,17 @@ def main():
 
     print(all_statistics)
 
+    # Define starting time
+    start_time_str_to_save = str(start_time).replace(":", "-")
 
     # Save the statistics to a CSV file
-    csv_file_path = 'all_statistics.csv'  # Modify the path as needed
+    csv_file_path = os.path.join(save_directory_path,f'summary_table_staring_{start_time_str_to_save}.csv')  # Modify the path as needed
     save_statistics_to_csv(all_statistics, csv_file_path)
 
     # Initialize the plot
     fig = plt.figure(figsize=(12, 8))
     ax = fig.add_subplot(111, projection='3d')
+
 
     # Define the update function for the animation
     def update(frame):
@@ -515,19 +509,23 @@ def main():
         if timestamp in all_statistics:
             adapted_plot_with_same_color_scale(
                 ax,
+                intersection_data,
                 all_statistics[timestamp],
                 chamber_dimensions,
                 min_temp=15,
                 max_temp=30,
                 frame_name=timestamp,
-                show_temp_point=False
+                scene_index=all_statistics[timestamp]["scene_index"],
+                elapsed_time_in_min=all_statistics[timestamp]["elapsed_time_in_min"],
+                show_temp_point=True # Set True if you want to see
             )
         else:
             print(f"Warning: {timestamp} not found in all_statistics.")
 
     # Create and save the animation
     ani = FuncAnimation(fig, update, frames=len(all_statistics.keys()))
-    ani.save('temperature_projection_animation.gif', writer='pillow')
+    ani_file_path =os.path.join(save_directory_path, f'animation_staring_{start_time_str_to_save}.gif')
+    ani.save(ani_file_path, writer='pillow')
     plt.show()
 
 
