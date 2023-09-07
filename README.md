@@ -1,4 +1,6 @@
-## Sanken Project -Princeton MRT sensor post-processing-
+## Temperature Projection
+This code set can radially extend the temperature information of 360-degree points on a sphere obtained with Chaosense to obtain the temperature of the given surface of a room.
+It is currently used to obtain surface temperatures of radiant panels, walls, and floors in the climate chamber at the Center for the Built Environment, UC Berkeley.
 
 ## Data Structure
 ```
