@@ -16,8 +16,8 @@ from congigration import *
 
 # Directory where your PLY files are stored
 directory_path = os.path.join(MRT_SENSOR_DATA_DIRECTORY, "sample ply data")
-start_time_str = "08-28-2023 09:00:00"
-end_time_str = "09-05-2023 17:00:00"
+start_time_str = "09-07-2023 09:00:00"
+end_time_str = "09-07-2023 17:00:00"
 
 # Directory where output files are saved
 save_directory_path = EXP_RECORD_DATA_DIRECTORY
@@ -367,7 +367,10 @@ def adapted_plot_with_same_color_scale(
 
     walls, panel_zones = define_walls_and_panels(chamber_dimensions)
 
-    cmap = cm.seismic
+    # Color bar reference (https://matplotlib.org/stable/tutorials/colors/colormaps.html)
+
+    # cmap = cm.seismic # from blue to read, useful when comparing heeting and cooling mode)
+    cmap = cm.coolwarm # only for cooling mode
     norm = Normalize(vmin=min_temp, vmax=max_temp)
 
     for name_type, entities in [("Panel", panel_zones), ("Wall", walls)]:
@@ -512,8 +515,8 @@ def main():
                 intersection_data,
                 all_statistics[timestamp],
                 chamber_dimensions,
-                min_temp=15,
-                max_temp=30,
+                min_temp=18,
+                max_temp=28,
                 frame_name=timestamp,
                 scene_index=all_statistics[timestamp]["scene_index"],
                 elapsed_time_in_min=all_statistics[timestamp]["elapsed_time_in_min"],

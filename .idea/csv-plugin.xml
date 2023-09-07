@@ -10,13 +10,6 @@
             </Attribute>
           </value>
         </entry>
-        <entry key="\scr\all_statistics.csv">
-          <value>
-            <Attribute>
-              <option name="separator" value="," />
-            </Attribute>
-          </value>
-        </entry>
       </map>
     </option>
   </component>
